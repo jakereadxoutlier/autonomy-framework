@@ -129,7 +129,7 @@ Each directory zone gets scored on event density (how much is happening) and suc
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR-REPO/autonomy-framework
+git clone https://github.com/jakereadxoutlier/autonomy-framework
 cd autonomy-framework
 ./install.sh ~/my-agent
 ```

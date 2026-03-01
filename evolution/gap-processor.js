@@ -1,0 +1,264 @@
+#!/usr/bin/env node
+/**
+ * Gap Processor — Turns capability gaps into actionable requests.
+ *
+ * Reads signals/failures.jsonl for unresolved gaps (severity >= 4).
+ * Checks against existing experiments + pending requests to avoid duplicates.
+ * Generates request files in requests/ for the bridge daemon to pick up.
+ * Tracks processing state in signals/gap-state.json.
+ *
+ * No dependencies. Pure Node.js.
+ * Run: node evolution/gap-processor.js
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const EVO = __dirname;
+const SIGNALS = path.join(EVO, 'signals');
+const REQUESTS = path.join(EVO, 'requests');
+
+const FAILURES_PATH = path.join(SIGNALS, 'failures.jsonl');
+const EXPERIMENTS_PATH = path.join(SIGNALS, 'experiments.jsonl');
+const GAP_STATE_PATH = path.join(SIGNALS, 'gap-state.json');
+
+const SEVERITY_THRESHOLD = 4;
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function readJsonl(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8').trim();
+    if (!content) return [];
+    return content.split('\n').filter(Boolean).map((line, i) => {
+      try { return { ...JSON.parse(line), _line: i }; }
+      catch { return null; }
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+function readJson(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch { return null; }
+}
+
+function writeJson(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
+}
+
+function readDir(dirPath) {
+  try { return fs.readdirSync(dirPath).filter(f => !f.startsWith('.')); }
+  catch { return []; }
+}
+
+function timestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '').slice(0, 13);
+}
+
+function slugify(str) {
+  return str.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40);
+}
+
+function log(msg) {
+  const line = `${new Date().toISOString()} [gap-processor] ${msg}`;
+  console.log(line);
+}
+
+// ── Core Logic ──────────────────────────────────────────────────────────────
+
+function loadGapState() {
+  return readJson(GAP_STATE_PATH) || { processed: {}, last_run: null };
+}
+
+function saveGapState(state) {
+  state.last_run = new Date().toISOString();
+  writeJson(GAP_STATE_PATH, state);
+}
+
+/**
+ * A gap is "resolved" if there's a matching experiment that's measuring or succeeded,
+ * OR if there's already a pending/in-progress request for it.
+ */
+function findResolvedSignatures(experiments, pendingRequests) {
+  const resolved = new Set();
+
+  // Experiments that are measuring or succeeded cover those gaps
+  for (const exp of experiments) {
+    if (exp.status === 'measuring' || exp.status === 'success') {
+      // Use the signal field as the signature
+      if (exp.signal) resolved.add(exp.signal);
+      // Also use proposal name
+      if (exp.proposal) resolved.add(exp.proposal);
+    }
+  }
+
+  // Pending requests also count — don't duplicate
+  for (const req of pendingRequests) {
+    resolved.add(req);
+  }
+
+  return resolved;
+}
+
+/**
+ * Build a signature for a failure entry to match against experiments.
+ * Uses type + a normalized version of the detail.
+ */
+function gapSignature(entry) {
+  const type = entry.type || 'unknown';
+  const detail = (entry.detail || '').toLowerCase();
+
+  // Extract key phrases for matching
+  const keywords = detail
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 3)
+    .slice(0, 5)
+    .join('_');
+
+  return `${type}:${keywords}`;
+}
+
+/**
+ * Generate a request .md file from a failure entry.
+ */
+function generateRequest(entry, signature) {
+  const ts = timestamp();
+  const slug = slugify(entry.detail || entry.type || 'gap');
+  const filename = `${ts}-auto-${slug}.md`;
+
+  // Determine request type from failure type
+  const typeMap = {
+    capability_gap: 'capability-gap',
+    task_failure: 'bug-fix',
+    tool_error: 'bug-fix',
+    user_correction: 'refactor',
+    pattern: 'architecture',
+  };
+  const reqType = typeMap[entry.type] || 'capability-gap';
+
+  // Determine priority from severity
+  const prioMap = { 5: 'P0-urgent', 4: 'P1-high', 3: 'P2-normal' };
+  const priority = prioMap[entry.severity] || 'P2-normal';
+
+  const content = `# Request: Fix — ${entry.detail ? entry.detail.slice(0, 80) : 'Unresolved gap'}
+- **From:** gap-processor (auto-generated from signals)
+- **Priority:** ${priority}
+- **Type:** ${reqType}
+- **Status:** pending
+- **Source signal:** ${entry.type} (severity ${entry.severity})
+- **Signal timestamp:** ${entry.ts || 'unknown'}
+- **Gap signature:** ${signature}
+
+## Context
+This request was automatically generated by the gap processor from a detected failure signal.
+
+Original signal:
+\`\`\`json
+${JSON.stringify(entry, null, 2)}
+\`\`\`
+
+${entry.frequency ? `**Frequency:** ${entry.frequency}` : ''}
+${entry.source ? `**Source agent:** ${entry.source}` : ''}
+
+## Desired Outcome
+Resolve the capability gap described above. Build whatever is needed — scripts, skills, config changes, architecture — so this failure type doesn't recur.
+
+## Acceptance Criteria
+1. The root cause of the failure is addressed
+2. Any new files are documented
+3. If a skill or config was modified, a snapshot exists in evolution/snapshots/
+4. An experiment entry should be logged to evolution/signals/experiments.jsonl to track whether the fix worked
+`;
+
+  return { filename, content };
+}
+
+// ── Main ────────────────────────────────────────────────────────────────────
+
+function main() {
+  log('Starting gap processing run');
+
+  // Ensure directories exist
+  [SIGNALS, REQUESTS].forEach(d => fs.mkdirSync(d, { recursive: true }));
+
+  // Load state
+  const state = loadGapState();
+  const failures = readJsonl(FAILURES_PATH);
+  const experiments = readJsonl(EXPERIMENTS_PATH);
+
+  // Get pending/in-progress request filenames for dedup
+  const requestFiles = readDir(REQUESTS).filter(f => f.endsWith('.md'));
+  const pendingRequestSigs = new Set();
+  for (const f of requestFiles) {
+    try {
+      const content = fs.readFileSync(path.join(REQUESTS, f), 'utf-8');
+      const sigMatch = content.match(/\*\*Gap signature:\*\*\s*(.+)/);
+      if (sigMatch) pendingRequestSigs.add(sigMatch[1].trim());
+    } catch {}
+  }
+
+  const resolved = findResolvedSignatures(experiments, pendingRequestSigs);
+
+  // Filter failures: severity >= threshold, not insights, not already processed
+  const actionable = failures.filter(entry => {
+    // Must meet severity threshold
+    if ((entry.severity || 0) < SEVERITY_THRESHOLD) return false;
+
+    // Skip insight-type entries (informational, not failures)
+    if (entry.type === 'insight') return false;
+
+    // Build signature and check against resolved + already-processed
+    const sig = gapSignature(entry);
+
+    if (resolved.has(sig)) {
+      log(`  Skipping (resolved): ${sig}`);
+      return false;
+    }
+
+    if (state.processed[sig]) {
+      log(`  Skipping (already processed): ${sig}`);
+      return false;
+    }
+
+    return true;
+  });
+
+  log(`Found ${failures.length} total signals, ${actionable.length} actionable gaps`);
+
+  if (actionable.length === 0) {
+    log('No new gaps to process.');
+    saveGapState(state);
+    return;
+  }
+
+  // Generate requests for each actionable gap
+  let generated = 0;
+  for (const entry of actionable) {
+    const sig = gapSignature(entry);
+    const { filename, content } = generateRequest(entry, sig);
+
+    const outPath = path.join(REQUESTS, filename);
+    fs.writeFileSync(outPath, content);
+    log(`  Generated request: ${filename}`);
+
+    // Mark as processing in state
+    state.processed[sig] = {
+      request_file: filename,
+      processed_at: new Date().toISOString(),
+      source_ts: entry.ts,
+      severity: entry.severity,
+    };
+
+    generated++;
+  }
+
+  saveGapState(state);
+  log(`Done. Generated ${generated} new request(s).`);
+}
+
+main();

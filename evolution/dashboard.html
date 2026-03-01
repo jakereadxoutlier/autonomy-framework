@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --orange: #db6d28;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Fira Code', monospace;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .card h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card h2 .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: var(--text-dim); }
+  .stat-value { font-weight: 600; }
+  .severity-5 { color: var(--red); }
+  .severity-4 { color: var(--orange); }
+  .severity-3 { color: var(--yellow); }
+  .status-success { color: var(--green); }
+  .status-measuring { color: var(--yellow); }
+  .status-failed { color: var(--red); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  td.detail {
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tr:hover td { background: rgba(88, 166, 255, 0.04); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-sev5 { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-sev4 { background: rgba(219,109,40,0.15); color: var(--orange); }
+  .badge-sev3 { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-success { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-measuring { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-failed { background: rgba(248,81,73,0.15); color: var(--red); }
+  .garden-stage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .garden-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .garden-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+  .garden-count {
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: right;
+  }
+  .load-msg {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    cursor: pointer;
+  }
+  .drop-zone:hover { border-color: var(--accent); }
+  .drop-zone.active { border-color: var(--green); background: rgba(63,185,80,0.05); }
+  .hidden { display: none; }
+  .refresh-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .refresh-btn:hover { border-color: var(--accent); }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .timestamp {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Evolution Dashboard</h1>
+    <div class="subtitle">Halo + Claude Code co-evolution system health</div>
+  </div>
+  <div style="text-align: right">
+    <button class="refresh-btn" onclick="loadFromDisk()">Reload Files</button>
+    <div class="timestamp" id="loadTime"></div>
+  </div>
+</div>
+
+<div id="dropZone" class="drop-zone hidden">
+  <p>Drop your signal files here, or click to select</p>
+  <p style="font-size:11px;margin-top:8px">Accepts: failures.jsonl, experiments.jsonl, STATUS.md</p>
+  <input type="file" id="fileInput" multiple accept=".jsonl,.md" style="display:none">
+</div>
+
+<div class="grid" id="summaryGrid">
+  <div class="card">
+    <h2><span class="dot" style="background:var(--red)"></span> Failures</h2>
+    <div id="failureSummary"><div class="load-msg">Loading...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="dot" style="background:var(--accent)"></span> Experiments</h2>
+    <div id="experimentSummary"><div class="load-msg">Loading...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="dot" style="background:var(--green)"></span> Knowledge Garden</h2>
+    <div id="gardenSummary"><div class="load-msg">Loading...</div></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h2>Failure Signals</h2>
+  <table>
+    <thead>
+      <tr><th>Time</th><th>Type</th><th>Severity</th><th>Detail</th><th>Source</th></tr>
+    </thead>
+    <tbody id="failuresTable">
+      <tr><td colspan="5" class="load-msg">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Experiments</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Proposal</th><th>Status</th><th>Verdict</th><th>Target</th><th>Applied</th></tr>
+    </thead>
+    <tbody id="experimentsTable">
+      <tr><td colspan="6" class="load-msg">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+var failures = [];
+var experiments = [];
+var gardenStatus = null;
+
+function parseJsonl(text) {
+  return text.trim().split('\n').filter(Boolean).map(function(line) {
+    try { return JSON.parse(line); }
+    catch(e) { return null; }
+  }).filter(Boolean);
+}
+
+function parseGardenStatus(md) {
+  var result = { seeds: 0, growing: 0, mature: 0, compost: 0, total: 0, ideas: [], lastTended: null };
+  var tendedMatch = md.match(/Last tended:\s*(.+)/);
+  if (tendedMatch) result.lastTended = tendedMatch[1].trim().replace(/\*/g, '');
+  var seedMatch = md.match(/Seeds\s*\|\s*(\d+)/);
+  var growMatch = md.match(/Growing\s*\|\s*(\d+)/);
+  var matureMatch = md.match(/Mature\s*\|\s*(\d+)/);
+  var compostMatch = md.match(/Compost\s*\|\s*(\d+)/);
+  var totalMatch = md.match(/Total\*\*\s*\|\s*\*\*(\d+)/);
+  if (seedMatch) result.seeds = parseInt(seedMatch[1]);
+  if (growMatch) result.growing = parseInt(growMatch[1]);
+  if (matureMatch) result.mature = parseInt(matureMatch[1]);
+  if (compostMatch) result.compost = parseInt(compostMatch[1]);
+  if (totalMatch) result.total = parseInt(totalMatch[1]);
+  var ideaRegex = /\*\*(.+?)\*\*\s*\((\w+)\)\s*—\s*touches:\s*(\d+),\s*confidence:\s*([\d.]+)/g;
+  var m;
+  while ((m = ideaRegex.exec(md)) !== null) {
+    result.ideas.push({ name: m[1], stage: m[2], touches: parseInt(m[3]), confidence: parseFloat(m[4]) });
+  }
+  return result;
+}
+
+function fmtTime(ts) {
+  if (!ts) return '—';
+  try {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).slice(0, 19);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch(e) { return String(ts).slice(0, 19); }
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function renderSummaries() {
+  var sevCounts = { 5: 0, 4: 0, 3: 0, other: 0 };
+  var typeCounts = {};
+  failures.forEach(function(f) {
+    var s = f.severity || 0;
+    if (s >= 5) sevCounts[5]++;
+    else if (s >= 4) sevCounts[4]++;
+    else if (s >= 3) sevCounts[3]++;
+    else sevCounts.other++;
+    typeCounts[f.type] = (typeCounts[f.type] || 0) + 1;
+  });
+  document.getElementById('failureSummary').innerHTML =
+    '<div class="stat-row"><span class="stat-label">Total signals</span><span class="stat-value">' + failures.length + '</span></div>' +
+    '<div class="stat-row"><span class="stat-label">Critical (sev 5)</span><span class="stat-value severity-5">' + sevCounts[5] + '</span></div>' +
+    '<div class="stat-row"><span class="stat-label">High (sev 4)</span><span class="stat-value severity-4">' + sevCounts[4] + '</span></div>' +
+    '<div class="stat-row"><span class="stat-label">Types</span><span class="stat-value">' + escapeHtml(Object.keys(typeCounts).join(', ')) + '</span></div>';
+
+  var statusCounts = {};
+  experiments.forEach(function(e) { statusCounts[e.status] = (statusCounts[e.status] || 0) + 1; });
+  var expHtml = '<div class="stat-row"><span class="stat-label">Total experiments</span><span class="stat-value">' + experiments.length + '</span></div>';
+  Object.keys(statusCounts).forEach(function(s) {
+    expHtml += '<div class="stat-row"><span class="stat-label">' + escapeHtml(s) + '</span><span class="stat-value status-' + s + '">' + statusCounts[s] + '</span></div>';
+  });
+  document.getElementById('experimentSummary').innerHTML = expHtml;
+
+  if (gardenStatus) {
+    var g = gardenStatus;
+    var maxCount = Math.max(g.seeds, g.growing, g.mature, g.compost, 1);
+    var stages = [
+      { label: 'Seeds', count: g.seeds, color: 'var(--yellow)' },
+      { label: 'Growing', count: g.growing, color: 'var(--green)' },
+      { label: 'Mature', count: g.mature, color: 'var(--accent)' },
+      { label: 'Compost', count: g.compost, color: 'var(--text-dim)' }
+    ];
+    var gHtml = '<div class="stat-row"><span class="stat-label">Last tended</span><span class="stat-value">' + fmtTime(g.lastTended) + '</span></div>';
+    stages.forEach(function(s) {
+      var pct = (s.count / maxCount) * 100;
+      gHtml += '<div class="garden-stage">' +
+        '<span class="stat-label" style="min-width:60px;font-size:12px">' + s.label + '</span>' +
+        '<div class="garden-bar"><div class="garden-bar-fill" style="width:' + pct + '%;background:' + s.color + '"></div></div>' +
+        '<span class="garden-count">' + s.count + '</span></div>';
+    });
+    if (g.ideas.length > 0) {
+      gHtml += '<div style="margin-top:8px;font-size:11px;color:var(--text-dim)">';
+      g.ideas.forEach(function(i) {
+        gHtml += '<div>' + escapeHtml(i.name) + ' <span style="opacity:0.6">(' + escapeHtml(i.stage) + ', ' + Math.round(i.confidence * 100) + '%)</span></div>';
+      });
+      gHtml += '</div>';
+    }
+    document.getElementById('gardenSummary').innerHTML = gHtml;
+  } else {
+    document.getElementById('gardenSummary').innerHTML = '<div class="load-msg">No garden data</div>';
+  }
+}
+
+function renderFailures() {
+  var tbody = document.getElementById('failuresTable');
+  if (failures.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="load-msg">No failure signals</td></tr>';
+    return;
+  }
+  var sorted = failures.slice().sort(function(a, b) {
+    return new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime();
+  });
+  tbody.innerHTML = sorted.map(function(f) {
+    var sevClass = f.severity >= 5 ? 'badge-sev5' : f.severity >= 4 ? 'badge-sev4' : 'badge-sev3';
+    return '<tr>' +
+      '<td>' + fmtTime(f.ts) + '</td>' +
+      '<td>' + escapeHtml(f.type || '—') + '</td>' +
+      '<td><span class="badge ' + sevClass + '">' + (f.severity || '?') + '</span></td>' +
+      '<td class="detail" title="' + escapeHtml(f.detail || '') + '">' + escapeHtml(f.detail || '—') + '</td>' +
+      '<td>' + escapeHtml(f.source || '—') + '</td></tr>';
+  }).join('');
+}
+
+function renderExperiments() {
+  var tbody = document.getElementById('experimentsTable');
+  if (experiments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="load-msg">No experiments</td></tr>';
+    return;
+  }
+  var sorted = experiments.slice().sort(function(a, b) {
+    return new Date(b.applied || 0).getTime() - new Date(a.applied || 0).getTime();
+  });
+  tbody.innerHTML = sorted.map(function(e) {
+    var statusClass = e.status === 'success' ? 'badge-success' : e.status === 'measuring' ? 'badge-measuring' : 'badge-failed';
+    var verdictClass = e.verdict === 'success' ? 'badge-success' : e.verdict === 'unverified' ? '' : 'badge-failed';
+    var verdictHtml = e.verdict ? '<span class="badge ' + verdictClass + '">' + escapeHtml(e.verdict) + '</span>' : '—';
+    return '<tr>' +
+      '<td>' + escapeHtml(e.id || '—') + '</td>' +
+      '<td>' + escapeHtml(e.proposal || '—') + '</td>' +
+      '<td><span class="badge ' + statusClass + '">' + escapeHtml(e.status || '?') + '</span></td>' +
+      '<td>' + verdictHtml + '</td>' +
+      '<td>' + escapeHtml(e.target || '—') + '</td>' +
+      '<td>' + fmtTime(e.applied) + '</td></tr>';
+  }).join('');
+}
+
+function render() {
+  renderSummaries();
+  renderFailures();
+  renderExperiments();
+  document.getElementById('loadTime').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+}
+
+function loadFromDisk() {
+  var loaded = 0;
+  var pending = 3;
+
+  function checkDone() {
+    pending--;
+    if (pending <= 0) {
+      if (loaded > 0) {
+        document.getElementById('dropZone').classList.add('hidden');
+        render();
+      } else {
+        document.getElementById('dropZone').classList.remove('hidden');
+      }
+    }
+  }
+
+  var xhr1 = new XMLHttpRequest();
+  xhr1.open('GET', 'signals/failures.jsonl');
+  xhr1.onload = function() { if (xhr1.status === 200) { failures = parseJsonl(xhr1.responseText); loaded++; } checkDone(); };
+  xhr1.onerror = function() { checkDone(); };
+  xhr1.send();
+
+  var xhr2 = new XMLHttpRequest();
+  xhr2.open('GET', 'signals/experiments.jsonl');
+  xhr2.onload = function() { if (xhr2.status === 200) { experiments = parseJsonl(xhr2.responseText); loaded++; } checkDone(); };
+  xhr2.onerror = function() { checkDone(); };
+  xhr2.send();
+
+  var xhr3 = new XMLHttpRequest();
+  xhr3.open('GET', '../garden/STATUS.md');
+  xhr3.onload = function() { if (xhr3.status === 200) { gardenStatus = parseGardenStatus(xhr3.responseText); loaded++; } checkDone(); };
+  xhr3.onerror = function() { checkDone(); };
+  xhr3.send();
+}
+
+function handleFiles(fileList) {
+  for (var i = 0; i < fileList.length; i++) {
+    (function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var text = e.target.result;
+        if (file.name.indexOf('failures') >= 0) {
+          failures = parseJsonl(text);
+        } else if (file.name.indexOf('experiments') >= 0) {
+          experiments = parseJsonl(text);
+        } else if (file.name.indexOf('.md') >= 0) {
+          gardenStatus = parseGardenStatus(text);
+        }
+        render();
+      };
+      reader.readAsText(file);
+    })(fileList[i]);
+  }
+  document.getElementById('dropZone').classList.add('active');
+}
+
+var dz = document.getElementById('dropZone');
+dz.addEventListener('click', function() { document.getElementById('fileInput').click(); });
+dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('active'); });
+dz.addEventListener('dragleave', function() { dz.classList.remove('active'); });
+dz.addEventListener('drop', function(e) { e.preventDefault(); handleFiles(e.dataTransfer.files); });
+document.getElementById('fileInput').addEventListener('change', function(e) { handleFiles(e.target.files); });
+
+loadFromDisk();
+</script>
+</body>
+</html>

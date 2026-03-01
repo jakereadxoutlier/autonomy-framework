@@ -1,0 +1,12 @@
+{
+  "cascades": [
+    {
+      "trigger": { "source": "github", "type": "push" },
+      "emit": { "source": "cascade", "type": "run_tests", "data": { "reason": "push triggered test run" } }
+    },
+    {
+      "trigger": { "source": "evolution", "type": "task_complete" },
+      "emit": { "source": "cascade", "type": "update_memory", "data": { "reason": "task complete triggers memory update" } }
+    }
+  ]
+}

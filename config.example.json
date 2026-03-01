@@ -1,0 +1,23 @@
+{
+  "agent_name": "my-agent",
+  "agent_home": "~/autonomy",
+  "claude_bin": "claude",
+  "node_bin": "node",
+  "bridge": {
+    "poll_interval_ms": 10000,
+    "max_request_timeout_ms": 1200000,
+    "oom_limit_mb": 1500
+  },
+  "nerve": {
+    "socket_path": "nerve/bus.sock",
+    "webhook_port": 7777,
+    "wake_url": null
+  },
+  "task_server": {
+    "port": 4247
+  },
+  "garden": {
+    "compost_after_days": 7,
+    "promotion_confidence": 0.7
+  }
+}

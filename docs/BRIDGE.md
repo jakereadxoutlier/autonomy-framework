@@ -10,7 +10,7 @@ Claude Code gets your request, full workspace access, and writes its response to
 
 ## your agent → Claude Code: Writing Requests
 
-1. Write a `.md` file to `~/clawd/evolution/requests/`
+1. Write a `.md` file to `~/autonomy/evolution/requests/`
 2. Filename: `YYYY-MM-DDTHHMM-short-description.md`
 3. Include `Status:** pending` — the daemon keys off this
 
@@ -36,7 +36,7 @@ The daemon picks it up, marks it `in-progress`, spawns Claude Code, and marks it
 
 ## Claude Code → your agent: Responses
 
-Responses land in `~/clawd/evolution/responses/` with the same filename. Check this directory on every session wake.
+Responses land in `~/autonomy/evolution/responses/` with the same filename. Check this directory on every session wake.
 
 ## Claude Code Proactive Signals
 
@@ -68,12 +68,12 @@ The task server:
 - Tracks task status (queued → processing → completed/failed)
 - Emits nerve events on completion (`task.completed`, `task.failed`)
 - Drains `deferred-tasks.jsonl` automatically every 60s
-- Runs as LaunchAgent `ai.openclaw.taskserver`
+- Runs as LaunchAgent `ai.autonomy.taskserver`
 
 ## How It Works Under the Hood
 
-- `bridge-daemon.js` runs as LaunchAgent `ai.openclaw.bridge`
-- `task-server.js` runs as LaunchAgent `ai.openclaw.taskserver` on port 4247
+- `bridge-daemon.js` runs as LaunchAgent `ai.autonomy.bridge`
+- `task-server.js` runs as LaunchAgent `ai.autonomy.taskserver` on port 4247
 - Bridge polls `requests/` every 10s
 - Spawns `claude -p` with the request content + workspace context
 - 20 min timeout per request

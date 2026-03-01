@@ -9,7 +9,7 @@
 #   ./nerve-cli.sh schedule "check barley" "2026-02-28T10:00:00Z" ["reason"]
 #   ./nerve-cli.sh stream                              Live stream events (follow mode)
 #   ./nerve-cli.sh rules                               Show attention rules
-#   ./nerve-cli.sh test '{"source":"email","from":"x@tectonicbid.com"}'  Test classification
+#   ./nerve-cli.sh test '{"source":"email","from":"user@example.com"}'  Test classification
 
 NERVE_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUS_SOCK="$NERVE_DIR/bus.sock"

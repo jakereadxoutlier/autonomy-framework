@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const AGENT_HOME_DIR = path.resolve(__dirname, '..');
+const CLAWD = path.resolve(__dirname, '..');
 const EVO = __dirname;
 const RESPONSES = path.join(EVO, 'responses');
 const REQUESTS = path.join(EVO, 'requests');

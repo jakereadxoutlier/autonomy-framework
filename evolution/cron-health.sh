@@ -306,7 +306,7 @@ check_launchd_daemons() {
     "bridge-daemon:node.*bridge-daemon:ai.autonomy.bridge:continuous"
     "nerve-daemon:node.*nerve.*daemon:ai.autonomy.nerve:continuous"
     "gateway:openclaw.*gateway:ai.autonomy.gateway:continuous"
-    "health-check:halo-health-check:n/a:300"
+    "health-check:agent-health-check:n/a:300"
   )
 
   for entry in "${daemons[@]}"; do
@@ -335,8 +335,6 @@ check_launchd_daemons() {
 check_log_based_crons() {
   # Check known cron log files for recent activity
   local -a log_checks=(
-    "personal-inbox:$CLAWD/scripts/personal-inbox.log:1800"
-    "weekly-report:$CLAWD/scripts/weekly-report.log:604800"
   )
 
   for entry in "${log_checks[@]}"; do

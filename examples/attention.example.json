@@ -1,10 +1,10 @@
 {
   "rules": [
-    { "pattern": "source:stripe AND type:payment.*", "priority": 0, "reason": "Payment events need immediate attention" },
-    { "pattern": "source:github AND type:push AND branch:main", "priority": 1, "reason": "Main branch pushes" },
-    { "pattern": "source:email AND from:*@your-domain.com", "priority": 1, "reason": "Team emails" },
-    { "pattern": "source:cron AND type:health_check", "priority": 2, "reason": "Routine health checks" },
-    { "pattern": "source:fs AND type:file_change", "priority": 3, "reason": "File system changes" },
-    { "pattern": "type:*", "priority": 4, "reason": "Default: log everything" }
+    { "match": { "source": "stripe", "type": "payment.*" }, "priority": 0, "reason": "Payment events need immediate attention" },
+    { "match": { "source": "github", "type": "push" }, "priority": 1, "reason": "Code pushes" },
+    { "match": { "source": "email" }, "priority": 1, "reason": "Incoming emails" },
+    { "match": { "source": "cron", "type": "health_check" }, "priority": 2, "reason": "Routine health checks" },
+    { "match": { "source": "fs", "type": "file_change" }, "priority": 3, "reason": "File system changes" },
+    { "match": { "type": "*" }, "priority": 4, "reason": "Default: log everything" }
   ]
 }

@@ -14,7 +14,7 @@ const GRADIENTS_DIR = path.join(__dirname, 'gradients');
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 // Top-level zones to analyze
-const ZONES = ['garden', 'nerve', 'skills', 'evolution', 'scripts', 'read-labs', 'projects', 'tectonic-email-bot'];
+const ZONES = ['garden', 'nerve', 'evolution', 'skills', 'scripts'];
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {

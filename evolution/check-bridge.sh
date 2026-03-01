@@ -22,7 +22,7 @@ LAUNCH_AGENT_LABEL="ai.autonomy.bridge"
 BRIDGE_PID_PATTERN="node.*bridge-daemon"
 
 # Node binary from the LaunchAgent plist
-NODE_BIN="/usr/local/Cellar/node@22/22.22.0_1/bin/node"
+NODE_BIN="$(which node 2>/dev/null)"
 if [[ ! -x "$NODE_BIN" ]]; then
   # Fallback to whatever node is in PATH
   NODE_BIN=$(which node 2>/dev/null || echo "")

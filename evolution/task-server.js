@@ -29,7 +29,7 @@ const { execFileSync } = require('child_process');
 
 // ── Config ──────────────────────────────────────────────────
 const PORT = parseInt(process.env.TASK_SERVER_PORT || '4247');
-const AGENT_HOME_DIR = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
+const CLAWD = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
 const REQUESTS_DIR = path.join(CLAWD, 'evolution', 'requests');
 const RESPONSES_DIR = path.join(CLAWD, 'evolution', 'responses');
 const SIGNALS_DIR = path.join(CLAWD, 'evolution', 'signals');

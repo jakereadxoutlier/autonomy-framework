@@ -5,7 +5,7 @@ set -e
 
 NERVE_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
-NODE="/usr/local/bin/node"
+NODE="$(which node 2>/dev/null)"
 UID_NUM=$(id -u)
 
 echo "═══ Nerve Daemon Installer ═══"

@@ -14,7 +14,7 @@ LABEL="ai.autonomy.taskserver"
 echo "Installing task server LaunchAgent..."
 
 # Check node exists
-NODE_BIN="/usr/local/Cellar/node@22/22.22.0_1/bin/node"
+NODE_BIN="$(which node 2>/dev/null)"
 if [[ ! -x "$NODE_BIN" ]]; then
   NODE_BIN=$(which node 2>/dev/null || echo "")
   if [[ -z "$NODE_BIN" ]]; then

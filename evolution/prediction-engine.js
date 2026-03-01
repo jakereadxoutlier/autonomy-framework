@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE = path.join(process.env.HOME, 'autonomy');
+const BASE = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
 const EVO = path.join(BASE, 'evolution');
 const PRED_DIR = path.join(EVO, 'predictions');
 const PREDICTIONS_FILE = path.join(PRED_DIR, 'tick-predictions.json');

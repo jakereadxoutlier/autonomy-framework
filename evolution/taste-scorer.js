@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const AGENT_HOME_DIR = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
+const CLAWD = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
 const GARDEN_DIR = path.join(CLAWD, 'evolution', 'garden');
 const INDEX_PATH = path.join(GARDEN_DIR, 'index.json');
 const JOURNAL_PATH = path.join(CLAWD, 'evolution', 'tick-journal.md');

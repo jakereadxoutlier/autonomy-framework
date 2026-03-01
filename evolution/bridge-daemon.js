@@ -13,7 +13,7 @@ const path = require('path');
 const net = require('net');
 const { execFileSync, spawn } = require('child_process');
 
-const AGENT_HOME_DIR = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
+const CLAWD = process.env.AGENT_HOME || path.join(process.env.HOME, 'autonomy');
 const REQUESTS = path.join(CLAWD, 'evolution', 'requests');
 const RESPONSES = path.join(CLAWD, 'evolution', 'responses');
 const SIGNALS = path.join(CLAWD, 'evolution', 'signals');
